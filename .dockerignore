@@ -1,0 +1,82 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .dockerignore — BookRAG
+# Excludes files that should never be copied into the Docker build context.
+# Keeping the context small speeds up builds and prevents accidental leakage
+# of secrets, large binary files, or local dev artefacts.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── Python cache / compiled files ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── uv cache ─────────────────────────────────────────────────────────────────
+.uv/
+
+# ── IDE / editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS artefacts ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Raw data directory ───────────────────────────────────────────────────────
+# Source documents are only needed during ingestion, not at query-time.
+# The ingestion pipeline is run separately before building the image.
+data/
+
+# ── FAISS vectorstore ─────────────────────────────────────────────────────────
+# The index is mounted at runtime via a Docker volume:
+#   -v $(pwd)/vectorstore:/app/vectorstore:ro
+# Including it in the build context would add hundreds of MB to every build.
+vectorstore/
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
+tests/
+test_*.py
+*_test.py
+pytest.ini
+.pytest_cache/
+htmlcov/
+.coverage
+
+# ── Jupyter / notebooks ───────────────────────────────────────────────────────
+*.ipynb
+.ipynb_checkpoints/
+
+# ── Documentation / notes ────────────────────────────────────────────────────
+*.md
+docs/
+ideas.md
+
+# ── Secrets / local config overrides ────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# ── Miscellaneous build artefacts ────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+.eggs/

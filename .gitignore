@@ -1,0 +1,35 @@
+# ── Secrets ───────────────────────────────────────────────────
+# config.py holds API keys — never commit it.
+# Use config/config.example.py as the committed reference instead.
+config/config.py
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+
+# ── Virtual environment ───────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Data & vectorstore ────────────────────────────────────────
+# Raw documents and the FAISS index are large and environment-specific.
+data/
+vectorstore/
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ── Tests ─────────────────────────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage
