@@ -1,0 +1,104 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# BookRAG — CI Pipeline (Continuous Integration)
+#
+# Triggers on:
+#   - Every push to main
+#   - Every pull request targeting main
+#
+# What it does:
+#   Job 1 (test)  : Install deps → run pytest → fail fast if tests break
+#   Job 2 (build) : Build Docker image → verify it compiles (don't push)
+#
+# What it does NOT do:
+#   - Push to ACR (that's CD)
+#   - Deploy to AKS (that's CD)
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs for the same branch/PR — saves runner minutes
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 1: Test
+  # ────────────────────────────────────────────────────────────────────────────
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Step 1: Checkout code ─────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Step 2: Install uv ────────────────────────────────────────────────
+      # uv is our package manager — much faster than pip
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      # ── Step 3: Set up Python ─────────────────────────────────────────────
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # ── Step 4: Install dependencies ──────────────────────────────────────
+      # --frozen ensures uv.lock is in sync with pyproject.toml
+      # If they're out of sync, the build fails (catches forgotten lock updates)
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # ── Step 5: Run tests ─────────────────────────────────────────────────
+      # -v           : verbose output (shows each test name)
+      # --tb=short   : short traceback on failure (easier to read in CI logs)
+      # --strict     : treat warnings as errors
+      - name: Run pytest
+        run: uv run pytest tests/ -v --tb=short
+        working-directory: ${{ github.workspace }}
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 2: Docker Build (verify only — no push)
+  # ────────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test  # only runs if tests pass
+
+    steps:
+      # ── Step 1: Checkout code ─────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Step 2: Set up Docker Buildx ──────────────────────────────────────
+      # Buildx is the modern Docker builder — supports caching, multi-platform
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── Step 3: Build the image (don't push) ─────────────────────────────
+      # This verifies:
+      #   - Dockerfile has no syntax errors
+      #   - All dependencies install correctly
+      #   - The HuggingFace model downloads successfully
+      #   - The final image compiles without errors
+      #
+      # cache-from / cache-to: GitHub Actions cache for Docker layers
+      # Subsequent builds reuse unchanged layers → much faster
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: bookrag:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

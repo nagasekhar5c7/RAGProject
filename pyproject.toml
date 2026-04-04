@@ -17,3 +17,8 @@ dependencies = [
     "sentence-transformers>=5.2.3",
     "uvicorn>=0.41.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
