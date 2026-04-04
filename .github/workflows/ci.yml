@@ -53,13 +53,19 @@ jobs:
         with:
           python-version: "3.12"
 
-      # ── Step 4: Install dependencies ──────────────────────────────────────
+      # ── Step 4: Create config.py from example ────────────────────────────
+      # config.py is in .gitignore (contains API keys locally).
+      # Tests use mocks so empty keys are fine — we just need the file to exist.
+      - name: Create config.py from example
+        run: cp config/config.example.py config/config.py
+
+      # ── Step 5: Install dependencies ──────────────────────────────────────
       # --frozen ensures uv.lock is in sync with pyproject.toml
       # If they're out of sync, the build fails (catches forgotten lock updates)
       - name: Install dependencies
         run: uv sync --frozen
 
-      # ── Step 5: Run tests ─────────────────────────────────────────────────
+      # ── Step 6: Run tests ─────────────────────────────────────────────────
       # -v           : verbose output (shows each test name)
       # --tb=short   : short traceback on failure (easier to read in CI logs)
       # --strict     : treat warnings as errors
@@ -80,12 +86,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── Step 2: Set up Docker Buildx ──────────────────────────────────────
+      # ── Step 2: Create config.py from example ────────────────────────────
+      - name: Create config.py from example
+        run: cp config/config.example.py config/config.py
+
+      # ── Step 3: Set up Docker Buildx ──────────────────────────────────────
       # Buildx is the modern Docker builder — supports caching, multi-platform
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ── Step 3: Build the image (don't push) ─────────────────────────────
+      # ── Step 4: Build the image (don't push) ─────────────────────────────
       # This verifies:
       #   - Dockerfile has no syntax errors
       #   - All dependencies install correctly
