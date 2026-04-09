@@ -41,7 +41,6 @@ jobs:
         uses: actions/checkout@v4
 
       # ── Step 2: Install uv ────────────────────────────────────────────────
-      # uv is our package manager — much faster than pip
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
@@ -60,18 +59,12 @@ jobs:
         run: cp config/config.example.py config/config.py
 
       # ── Step 5: Install dependencies ──────────────────────────────────────
-      # --frozen ensures uv.lock is in sync with pyproject.toml
-      # If they're out of sync, the build fails (catches forgotten lock updates)
       - name: Install dependencies
         run: uv sync --frozen
 
       # ── Step 6: Run tests ─────────────────────────────────────────────────
-      # -v           : verbose output (shows each test name)
-      # --tb=short   : short traceback on failure (easier to read in CI logs)
-      # --strict     : treat warnings as errors
       - name: Run pytest
         run: uv run pytest tests/ -v --tb=short
-        working-directory: ${{ github.workspace }}
 
   # ────────────────────────────────────────────────────────────────────────────
   # Job 2: Docker Build (verify only — no push)
@@ -91,19 +84,12 @@ jobs:
         run: cp config/config.example.py config/config.py
 
       # ── Step 3: Set up Docker Buildx ──────────────────────────────────────
-      # Buildx is the modern Docker builder — supports caching, multi-platform
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       # ── Step 4: Build the image (don't push) ─────────────────────────────
-      # This verifies:
-      #   - Dockerfile has no syntax errors
-      #   - All dependencies install correctly
-      #   - The HuggingFace model downloads successfully
-      #   - The final image compiles without errors
-      #
-      # cache-from / cache-to: GitHub Actions cache for Docker layers
-      # Subsequent builds reuse unchanged layers → much faster
+      # Verifies: Dockerfile syntax, deps install, HuggingFace model downloads
+      # cache-from / cache-to: reuse unchanged layers → faster subsequent builds
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
