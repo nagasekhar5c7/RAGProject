@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookrag
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookrag
+  template:
+    metadata:
+      labels:
+        app: bookrag
+    spec:
+      containers:
+        - name: bookrag
+          image: bookragcontainer.azurecr.io/bookrag:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "1"
+              memory: "4Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30

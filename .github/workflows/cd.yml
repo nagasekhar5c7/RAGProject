@@ -1,0 +1,64 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# BookRAG — CD Pipeline (Continuous Deployment)
+#
+# Triggers: only after CI passes on main
+#
+# What it does:
+#   1. Build Docker image
+#   2. Push to ACR (bookragcontainer)
+#   3. Deploy to AKS (bookrag-aks)
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Build, Push & Deploy
+    runs-on: ubuntu-latest
+    # Only run if CI passed
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      # ── Step 1: Checkout code ───────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Step 2: Create config.py from example ──────────────────────────
+      - name: Create config.py from example
+        run: cp config/config.example.py config/config.py
+
+      # ── Step 3: Login to Azure ──────────────────────────────────────────
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # ── Step 4: Login to ACR ────────────────────────────────────────────
+      - name: Login to ACR
+        run: az acr login --name bookragcontainer
+
+      # ── Step 5: Build & Push Docker image ───────────────────────────────
+      - name: Build and push image
+        run: |
+          docker build -t bookragcontainer.azurecr.io/bookrag:${{ github.sha }} .
+          docker push bookragcontainer.azurecr.io/bookrag:${{ github.sha }}
+
+      # ── Step 6: Get AKS credentials ────────────────────────────────────
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group 042025_RAG_BookProject \
+            --name bookrag-aks
+
+      # ── Step 7: Deploy to AKS ──────────────────────────────────────────
+      - name: Deploy to AKS
+        run: |
+          kubectl apply -f k8s/
+          kubectl set image deployment/bookrag \
+            bookrag=bookragcontainer.azurecr.io/bookrag:${{ github.sha }}
