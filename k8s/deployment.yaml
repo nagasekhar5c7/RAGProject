@@ -17,6 +17,22 @@ spec:
           image: bookragcontainer.azurecr.io/bookrag:latest
           ports:
             - containerPort: 8000
+          env:
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bookrag-secrets
+                  key: GROQ_API_KEY
+            - name: COHERE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bookrag-secrets
+                  key: COHERE_API_KEY
+            - name: LANGSMITH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bookrag-secrets
+                  key: LANGSMITH_API_KEY
           resources:
             requests:
               cpu: "500m"
